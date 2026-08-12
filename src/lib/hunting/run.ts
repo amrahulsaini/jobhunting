@@ -61,7 +61,14 @@ export async function runHunt({
     // Ask for extra, then research only as many as the user paid attention for.
     const shortlist = discovery.companies.slice(0, config.matches);
 
-    report(`Found ${discovery.companies.length} companies — verifying contacts`, 35, shortlist.length);
+    const outside = discovery.rejected.length
+      ? `, ${discovery.rejected.length} outside your countries`
+      : "";
+    report(
+      `${discovery.companies.length} companies in scope${outside} — verifying contacts`,
+      35,
+      shortlist.length
+    );
 
     const enriched: EnrichResult[] = await enrichAll(shortlist, (done, total, name) => {
       report(
@@ -79,6 +86,7 @@ export async function runHunt({
         roles,
         config,
         searchQueries: discovery.searchQueries,
+        rejected: discovery.rejected,
         sources: discovery.sources,
         companies: enriched,
         totalDiscovered: discovery.companies.length,

@@ -159,6 +159,8 @@ export interface HuntDoc {
   config: unknown;
   /** The queries the agent actually ran on Google. */
   searchQueries: string[];
+  /** Companies dropped for sitting outside the requested countries. */
+  rejected?: { name: string; location?: string; why: string }[];
   /** Pages the grounded search cited. */
   sources: { title: string; uri: string }[];
   /** Researched companies, each carrying the evidence for its contact. */

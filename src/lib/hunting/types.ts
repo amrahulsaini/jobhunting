@@ -38,6 +38,8 @@ export interface HuntedCompany {
   roleTitle?: string;
   roleType?: string;
   location?: string;
+  /** Country the role sits in, used to enforce the country filter. */
+  country?: string;
   /** Where the opening was seen. */
   foundVia?: string;
   careersUrl?: string;

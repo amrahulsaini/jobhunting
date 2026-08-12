@@ -122,6 +122,29 @@ export default async function HuntReportPage({
         </section>
       )}
 
+      {/* Shows the country filter doing its job, rather than silently dropping. */}
+      {!!hunt.rejected?.length && (
+        <section className="card mt-5 p-6">
+          <h2 className="text-sm font-semibold uppercase tracking-wide">
+            Filtered out — outside your countries ({hunt.rejected.length})
+          </h2>
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            The search returned these, but they are not in the countries you chose, so they
+            were dropped before any research was done.
+          </p>
+          <ul className="mt-4 space-y-2 text-sm">
+            {hunt.rejected.map(r => (
+              <li key={r.name} className="flex flex-wrap items-baseline gap-x-2">
+                <span className="font-medium line-through decoration-[var(--line-strong)]">
+                  {r.name}
+                </span>
+                <span className="text-xs text-[var(--muted)]">{r.why}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* ---------------------------------------------------- the companies */}
       <div className="mt-5 space-y-5">
         {companies.map(company => (
