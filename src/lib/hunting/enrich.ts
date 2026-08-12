@@ -15,10 +15,22 @@ import type { ContactSource, HuntedCompany } from "./types";
 
 const TIMEOUT = 12_000;
 
-/** Paths worth trying, most likely first. */
+/**
+ * Paths worth trying, interleaved by likelihood rather than grouped.
+ *
+ * Careers and contact pages alternate on purpose: contact pages are where a
+ * published address usually lives, so listing every careers variant first meant
+ * the attempt budget was exhausted before /contact was ever opened — which is
+ * exactly how we missed a real address on fareharbor.com.
+ *
+ * Localised paths are included because a German or Dutch company publishes
+ * under /kontakt or /vacatures, not /contact.
+ */
 const CAREERS_PATHS = [
-  "/careers", "/jobs", "/careers/", "/jobs/", "/company/careers",
-  "/about/careers", "/join-us", "/work-with-us", "/contact", "/contact-us",
+  "/careers", "/contact", "/jobs", "/contact-us",
+  "/careers/", "/kontakt", "/about/contact", "/join-us",
+  "/company/careers", "/karriere", "/vacatures", "/work-with-us",
+  "/about/careers", "/contacto", "/about-us/contact", "/impressum",
 ];
 
 const EMAIL_RX = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi;
@@ -96,6 +108,9 @@ function readable(html: string): string {
     .replace(/<[^>]+>/g, " ")
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
+    // Some sites publish the @ and . as entities to deter naive scrapers.
+    .replace(/&#0?64;|&commat;/gi, "@")
+    .replace(/&#0?46;/g, ".")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -151,7 +166,7 @@ function detectAts(html: string): string | undefined {
 function careersLinkFrom(html: string, origin: string): string | undefined {
   for (const m of html.matchAll(/href="([^"]+)"[^>]*>([^<]{0,60})</gi)) {
     const [, href, label] = m;
-    if (!/career|jobs|hiring|join|work with us|we're hiring/i.test(`${href} ${label}`)) continue;
+    if (!/career|jobs|hiring|join|work with us|we're hiring|contact|kontakt|vacature/i.test(`${href} ${label}`)) continue;
     if (/^(mailto:|tel:|#)/i.test(href)) continue;
 
     try {
@@ -203,7 +218,7 @@ export async function enrichCompany(company: HuntedCompany): Promise<EnrichResul
     (v): v is string => Boolean(v)
   );
 
-  for (const url of candidates.slice(0, 6)) {
+  for (const url of candidates.slice(0, 12)) {
     if (visited.some(v => v.url === url)) continue;
 
     const page = await fetchPage(url);

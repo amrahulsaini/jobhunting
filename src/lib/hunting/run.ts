@@ -56,7 +56,7 @@ export async function runHunt({
           0
         ),
     });
-    for (const usage of discovery.usages) await recordUsage(userId, "other", usage);
+    for (const usage of discovery.usages) await recordUsage(userId, "job-hunting", usage);
 
     // Ask for extra, then research only as many as the user paid attention for.
     const shortlist = discovery.companies.slice(0, config.matches);

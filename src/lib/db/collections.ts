@@ -138,7 +138,7 @@ export interface HunterSummary {
 export interface UsageEventDoc {
   _id?: ObjectId;
   userId: ObjectId;
-  purpose: "resume-parse" | "hunter-summary" | "outreach-draft" | "other";
+  purpose: "resume-parse" | "hunter-summary" | "job-hunting" | "outreach-draft" | "other";
   model: string;
   /** Which transport served the call — vertex or gemini. */
   provider?: string;

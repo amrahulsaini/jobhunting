@@ -16,6 +16,7 @@ export const dynamic = "force-dynamic";
 const PURPOSE_LABELS: Record<string, string> = {
   "resume-parse": "Resume parsing",
   "hunter-summary": "Hunter briefing",
+  "job-hunting": "Job hunting",
   "outreach-draft": "Email drafting",
   other: "Other",
 };
