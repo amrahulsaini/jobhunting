@@ -130,7 +130,7 @@ export function SiteHeader({ username }: { username?: string | null }) {
               </Link>
               <Link
                 href="/start"
-                className="inline-flex items-center gap-2 rounded-xl bg-[var(--foreground)] px-3.5 py-2.5 text-sm font-medium text-[var(--background)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] sm:px-4"
+                className="inline-flex items-center gap-2 rounded-xl btn-accent px-3.5 py-2.5 text-sm font-medium transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] sm:px-4"
               >
                 <span className="whitespace-nowrap">Start hunting</span>
                 <Icon name="send" className="hidden h-4 w-4 sm:block" />

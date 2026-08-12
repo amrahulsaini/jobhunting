@@ -165,7 +165,7 @@ export default async function Home() {
               >
                 <Link
                   href="/start"
-                  className="group relative inline-flex items-center gap-2 overflow-hidden rounded-xl bg-[var(--foreground)] px-5 sm:px-6 py-3.5 text-sm font-medium text-[var(--background)] shadow-[var(--shadow-md)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-lg)]"
+                  className="group relative inline-flex items-center gap-2 overflow-hidden rounded-xl btn-accent px-5 sm:px-6 py-3.5 text-sm font-medium shadow-[var(--shadow-md)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-lg)]"
                 >
                   <Icon name="resume-upload" className="h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5" />
                   Start hunting
@@ -450,7 +450,7 @@ export default async function Home() {
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Link
                 href="/start"
-                className="group inline-flex items-center gap-2 rounded-xl bg-[var(--foreground)] px-5 sm:px-6 py-3.5 text-sm font-medium text-[var(--background)] shadow-[var(--shadow-md)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-lg)]"
+                className="group inline-flex items-center gap-2 rounded-xl btn-accent px-5 sm:px-6 py-3.5 text-sm font-medium shadow-[var(--shadow-md)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-lg)]"
               >
                 <Icon name="resume-upload" className="h-4 w-4" />
                 Start hunting

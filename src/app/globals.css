@@ -203,6 +203,25 @@ body {
   animation: jh-shimmer 1.1s var(--ease-out-expo);
 }
 
+/* The primary action on a screen. Lime with near-black ink — the one pairing
+   that stays readable, and the same in both themes so a CTA never inverts into
+   something washed out. */
+.btn-accent {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border: 1px solid var(--accent);
+}
+.btn-accent:hover {
+  filter: brightness(1.06);
+}
+
+/* Selected state for toggles: chips, counts, step markers. */
+.is-selected {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+
 /* Underline that draws in from the left on hover. */
 .link-underline {
   position: relative;

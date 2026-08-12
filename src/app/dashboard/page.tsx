@@ -97,7 +97,7 @@ export default async function DashboardPage() {
             <span
               className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${
                 item.done
-                  ? "border-[var(--foreground)] bg-[var(--foreground)] text-[var(--background)]"
+                  ? "is-selected"
                   : "border-[var(--line-strong)]"
               }`}
             >
@@ -144,7 +144,7 @@ export default async function DashboardPage() {
             </div>
             <Link
               href="/profile"
-              className="inline-flex items-center gap-2 rounded-xl bg-[var(--foreground)] px-6 py-3.5 text-sm font-medium text-[var(--background)] shadow-[var(--shadow-md)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-lg)]"
+              className="inline-flex items-center gap-2 rounded-xl btn-accent px-6 py-3.5 text-sm font-medium shadow-[var(--shadow-md)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-lg)]"
             >
               <Icon name="resume-upload" className="h-4 w-4" />
               Go to profile

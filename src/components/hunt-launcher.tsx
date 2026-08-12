@@ -257,7 +257,7 @@ export function HuntLauncher({
                   aria-pressed={on}
                   className={`rounded-full border px-4 py-2 text-sm transition-colors ${
                     on
-                      ? "border-[var(--foreground)] bg-[var(--foreground)] text-[var(--background)]"
+                      ? "is-selected"
                       : "border-[var(--line)] hover:bg-[var(--subtle)]"
                   }`}
                 >
@@ -277,7 +277,7 @@ export function HuntLauncher({
                 aria-pressed={matches === n}
                 className={`min-w-[4rem] rounded-xl border px-4 py-2.5 text-sm transition-colors ${
                   matches === n
-                    ? "border-[var(--foreground)] bg-[var(--foreground)] text-[var(--background)]"
+                    ? "is-selected"
                     : "border-[var(--line)] hover:bg-[var(--subtle)]"
                 }`}
               >
@@ -318,7 +318,7 @@ export function HuntLauncher({
                 aria-pressed={on}
                 className={`rounded-full border px-4 py-2 text-sm transition-colors ${
                   on
-                    ? "border-[var(--foreground)] bg-[var(--foreground)] text-[var(--background)]"
+                    ? "is-selected"
                     : full
                       ? "cursor-not-allowed border-[var(--line)] opacity-40"
                       : "border-[var(--line)] hover:bg-[var(--subtle)]"
@@ -363,7 +363,7 @@ export function HuntLauncher({
       <button
         type="button"
         onClick={start}
-        className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--foreground)] px-6 py-4 text-sm font-medium text-[var(--background)] shadow-[var(--shadow-md)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-lg)] sm:w-auto sm:px-8"
+        className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-xl btn-accent px-6 py-4 text-sm font-medium shadow-[var(--shadow-md)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-lg)] sm:w-auto sm:px-8"
       >
         <Icon name="hunter" className="h-4 w-4" />
         Start hunting

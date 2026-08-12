@@ -177,7 +177,7 @@ export function ResumeWizard({
               disabled={i > step}
               className={`flex items-center gap-2 rounded-full border px-3 py-1.5 transition-colors ${
                 i === step
-                  ? "border-[var(--foreground)] bg-[var(--foreground)] text-[var(--background)]"
+                  ? "is-selected"
                   : i < step
                     ? "border-[var(--line-strong)] hover:bg-[var(--subtle)]"
                     : "border-[var(--line)] text-[var(--muted)]"
@@ -224,7 +224,7 @@ export function ResumeWizard({
             type="button"
             onClick={upload}
             disabled={!file || busy !== null}
-            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--foreground)] px-6 py-3.5 text-sm font-medium text-[var(--background)] transition-all duration-300 hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-60"
+            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl btn-accent px-6 py-3.5 text-sm font-medium transition-all duration-300 hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-60"
           >
             {busy ?? "Parse my resume"}
           </button>
@@ -467,7 +467,7 @@ export function ResumeWizard({
               type="button"
               onClick={sendToHunter}
               disabled={busy !== null}
-              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--foreground)] px-6 py-3.5 text-sm font-medium text-[var(--background)] shadow-[var(--shadow-md)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-lg)] disabled:translate-y-0 disabled:opacity-60"
+              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl btn-accent px-6 py-3.5 text-sm font-medium shadow-[var(--shadow-md)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-lg)] disabled:translate-y-0 disabled:opacity-60"
             >
               <Icon name="hunter" className="h-4 w-4" />
               {busy ?? "Submit all details to Hunter"}
@@ -507,7 +507,7 @@ function StepNav({
           type="button"
           onClick={onNext}
           disabled={busy !== null}
-          className="inline-flex items-center gap-2 rounded-xl bg-[var(--foreground)] px-6 py-3 text-sm font-medium text-[var(--background)] transition-all duration-300 hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-xl btn-accent px-6 py-3 text-sm font-medium transition-all duration-300 hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-60"
         >
           {busy ?? "Save and continue"}
         </button>

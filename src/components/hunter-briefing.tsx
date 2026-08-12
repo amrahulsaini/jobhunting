@@ -207,7 +207,7 @@ export function HunterBriefing({
               type="button"
               onClick={regenerate}
               disabled={busy}
-              className="inline-flex items-center gap-2 rounded-xl bg-[var(--foreground)] px-4 py-2.5 text-sm font-medium text-[var(--background)] transition-all duration-300 hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl btn-accent px-4 py-2.5 text-sm font-medium transition-all duration-300 hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-60"
             >
               <Icon name="hunter" className="h-4 w-4" />
               {busy ? "Starting…" : "Run briefing again"}

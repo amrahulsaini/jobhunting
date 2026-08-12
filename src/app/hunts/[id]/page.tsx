@@ -183,7 +183,7 @@ export default async function HuntReportPage({
                     href={company.careersUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-lg bg-[var(--foreground)] px-3 py-2 text-xs font-medium text-[var(--background)] transition-opacity hover:opacity-85"
+                    className="rounded-lg btn-accent px-3 py-2 text-xs font-medium transition-opacity hover:opacity-85"
                   >
                     Careers page
                   </a>

@@ -66,7 +66,7 @@ export default async function HuntsPage() {
           </p>
           <Link
             href="/dashboard"
-            className="rounded-xl bg-[var(--foreground)] px-5 py-3 text-sm font-medium text-[var(--background)]"
+            className="rounded-xl btn-accent px-5 py-3 text-sm font-medium"
           >
             Go to dashboard
           </Link>

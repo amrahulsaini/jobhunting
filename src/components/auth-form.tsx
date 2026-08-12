@@ -109,7 +109,7 @@ export function AuthForm({ mode }: { mode: "signup" | "login" }) {
       <button
         type="submit"
         disabled={pending}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--foreground)] px-6 py-3.5 text-sm font-medium text-[var(--background)] shadow-[var(--shadow-md)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-lg)] disabled:translate-y-0 disabled:opacity-60"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-xl btn-accent px-6 py-3.5 text-sm font-medium shadow-[var(--shadow-md)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-lg)] disabled:translate-y-0 disabled:opacity-60"
       >
         {pending
           ? mode === "signup" ? "Creating account…" : "Logging in…"
