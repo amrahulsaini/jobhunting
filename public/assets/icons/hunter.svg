@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="hunter">
+  <!-- Crosshair: the agent taking aim at a target, not just searching. -->
+  <circle cx="11" cy="11" r="7"/>
+  <path d="M11 1.5v3"/>
+  <path d="M11 17.5v3"/>
+  <path d="M1.5 11h3"/>
+  <path d="M17.5 11h3"/>
+  <!-- Locked-on centre -->
+  <circle cx="11" cy="11" r="2.5" fill="currentColor" stroke="none"/>
+  <!-- AI spark, marking it as the agent rather than a plain search -->
+  <path d="M18.5 15.5l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z" fill="currentColor" stroke="none"/>
+</svg>

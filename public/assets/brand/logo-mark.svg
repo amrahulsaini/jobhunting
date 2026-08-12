@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none" role="img" aria-label="JobHunting mark">
+  <!-- Knocks a clean gap out of the sheet wherever the magnifier crosses it,
+       so the mark stays legible on any background without a filled backdrop. -->
+  <mask id="jh-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+    <rect width="64" height="64" fill="#fff"/>
+    <circle cx="43" cy="43" r="14.5" fill="#000"/>
+    <path d="M48.6 48.6 58 58" stroke="#000" stroke-width="10" stroke-linecap="round"/>
+  </mask>
+
+  <g stroke="currentColor" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round">
+    <g mask="url(#jh-cut)">
+      <!-- resume sheet with folded corner -->
+      <path d="M17 6h16l13 13v27a6 6 0 0 1-6 6H17a6 6 0 0 1-6-6V12a6 6 0 0 1 6-6Z"/>
+      <path d="M33 6v9a4 4 0 0 0 4 4h9"/>
+      <!-- content lines -->
+      <g stroke-width="3">
+        <path d="M19.5 27h13"/>
+        <path d="M19.5 35h18"/>
+        <path d="M19.5 43h9"/>
+      </g>
+    </g>
+
+    <!-- magnifier -->
+    <circle cx="43" cy="43" r="10"/>
+    <path d="M50.5 50.5 58 58" stroke-width="4.5"/>
+  </g>
+</svg>

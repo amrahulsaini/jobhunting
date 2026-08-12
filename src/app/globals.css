@@ -1,0 +1,246 @@
+@import "tailwindcss";
+
+/* Strict black & white base theme. There is no accent hue anywhere — hierarchy
+   comes from weight, scale and tone instead. */
+:root {
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --muted: #6b6b6b;
+  --subtle: #f4f4f4;
+  --line: #e4e4e4;
+  --line-strong: #c9c9c9;
+  --art-invert: 0;
+
+  /* The one accent in an otherwise monochrome system. Reserved for things that
+     are live or actionable — a progress fill, the active nav item, focus rings.
+     It never appears in the illustrations: those are grayscale and get
+     filter-inverted in dark mode, which would turn any hue its opposite. */
+  --accent: #ccff00;
+  /* Text placed ON the accent. Always near-black — lime needs dark ink to stay
+     readable, and light text on it fails contrast badly. */
+  --accent-ink: #0a0a0a;
+
+  /* Neutral shadows only — a coloured shadow would break the mono system. */
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.04), 0 1px 3px rgb(0 0 0 / 0.06);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 0.06), 0 2px 4px rgb(0 0 0 / 0.04);
+  --shadow-lg: 0 12px 32px rgb(0 0 0 / 0.10), 0 4px 8px rgb(0 0 0 / 0.05);
+
+  --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #f5f5f5;
+    --muted: #a1a1a1;
+    --subtle: #171717;
+    --line: #262626;
+    --line-strong: #3d3d3d;
+    /* Nudged brighter so it still reads as a signal against near-black. */
+    --accent: #d4ff1a;
+    /* Generated art is pure monochrome on white, so one filter serves dark mode
+       instead of a second set of exports. */
+    --art-invert: 1;
+
+    /* Shadows read as depth on white but as mud on black, so dark mode leans on
+       stronger borders and only a faint lift. */
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-md: 0 4px 12px rgb(0 0 0 / 0.5);
+    --shadow-lg: 0 12px 32px rgb(0 0 0 / 0.6);
+  }
+}
+
+/* One global focus style, so keyboard users get the accent everywhere without
+   it being repeated on every interactive element. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+@theme inline {
+  --color-accent: var(--accent);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-line: var(--line);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* The header is sticky, so an anchored section would otherwise land underneath
+   it. scroll-margin-top offsets the jump by the header's height. */
+[id] {
+  scroll-margin-top: 6rem;
+}
+
+/* Apply to any generated raster asset so it flips with the theme. */
+.art {
+  filter: invert(var(--art-invert));
+}
+
+/* Video generation is not reliably desaturated — the model occasionally slips a
+   tint into a frame. grayscale() enforces the monochrome rule at render time so
+   a stray colour can never reach the page. */
+.motion {
+  filter: grayscale(1) invert(var(--art-invert));
+}
+
+/* ------------------------------------------------------------------ motion */
+
+@keyframes jh-fade-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes jh-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes jh-scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes jh-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+@keyframes jh-sweep {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes jh-pulse-ring {
+  0%   { opacity: 0.5; transform: scale(0.85); }
+  70%  { opacity: 0;   transform: scale(1.6); }
+  100% { opacity: 0;   transform: scale(1.6); }
+}
+
+@keyframes jh-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+
+/* Sweeps a soft highlight across a surface on hover. */
+@keyframes jh-shimmer {
+  from { transform: translateX(-120%) skewX(-12deg); }
+  to   { transform: translateX(220%) skewX(-12deg); }
+}
+
+@keyframes jh-border-glow {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 1; }
+}
+
+/* Elements start hidden and are revealed by IntersectionObserver, which adds
+   [data-visible]. The `no-js` guard means content is never permanently invisible
+   if the observer never runs. */
+.reveal {
+  opacity: 0;
+  will-change: opacity, transform;
+}
+.reveal[data-visible="true"] {
+  animation: jh-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-fade      { animation: jh-fade 0.8s ease forwards; }
+.animate-fade-up   { animation: jh-fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-scale-in  { animation: jh-scale-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-marquee   { animation: jh-marquee 42s linear infinite; }
+.animate-sweep     { animation: jh-sweep 8s linear infinite; transform-origin: center; }
+.animate-pulse-ring { animation: jh-pulse-ring 2.6s ease-out infinite; }
+.animate-float     { animation: jh-float 7s ease-in-out infinite; }
+.animate-border-glow { animation: jh-border-glow 3s ease-in-out infinite; }
+
+/* ------------------------------------------------------------------ surface */
+
+/* Shared card treatment: rounded, quiet at rest, lifts on hover. */
+.card {
+  border-radius: 1rem;
+  border: 1px solid var(--line);
+  background: var(--background);
+  transition:
+    transform 0.4s var(--ease-out-expo),
+    box-shadow 0.4s var(--ease-out-expo),
+    border-color 0.3s ease;
+}
+.card:hover {
+  transform: translateY(-4px);
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Light sweep across a card on hover. The element is clipped by the card's
+   overflow, so it reads as a reflection rather than a moving box. */
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--foreground) 7%, transparent),
+    transparent
+  );
+  transform: translateX(-120%) skewX(-12deg);
+  pointer-events: none;
+}
+.shimmer:hover::after {
+  animation: jh-shimmer 1.1s var(--ease-out-expo);
+}
+
+/* Underline that draws in from the left on hover. */
+.link-underline {
+  position: relative;
+}
+.link-underline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  height: 1px;
+  width: 100%;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.35s var(--ease-out-expo);
+}
+.link-underline:hover::after {
+  transform: scaleX(1);
+}
+
+/* Respect the OS setting: everything lands in its final state instantly. */
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal[data-visible="true"],
+  .animate-fade,
+  .animate-fade-up,
+  .animate-scale-in,
+  .animate-marquee,
+  .animate-sweep,
+  .animate-pulse-ring,
+  .animate-float,
+  .animate-border-glow,
+  .shimmer:hover::after {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .card:hover { transform: none !important; }
+  html { scroll-behavior: auto !important; }
+  * { transition-duration: 0.01ms !important; }
+}

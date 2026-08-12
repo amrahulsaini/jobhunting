@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+  <!-- Tileable. Opacity is baked low so it can sit directly behind body copy. -->
+  <defs>
+    <pattern id="p" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" fill="none" stroke="currentColor" stroke-width="1" opacity="0.12"/>
+    </pattern>
+  </defs>
+  <rect width="48" height="48" fill="url(#p)"/>
+</svg>
