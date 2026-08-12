@@ -165,6 +165,8 @@ export interface HuntDoc {
   sources: { title: string; uri: string }[];
   /** Researched companies, each carrying the evidence for its contact. */
   companies: unknown[];
+  /** Candidates dropped as dead, parked or unusable — kept so counts explain themselves. */
+  discarded?: unknown[];
   totalDiscovered: number;
   createdAt: Date;
 }

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { BOT_UA, isAllowed } from "@/lib/jobs/http";
 import type { ContactSource, HuntedCompany } from "./types";
 
@@ -64,6 +65,62 @@ export interface PageVisit {
   /** First part of the readable text, kept as a snapshot of what we saw. */
   snapshot?: string;
   error?: string;
+}
+
+/** Cheap fingerprint, used to spot pages that are really the same page. */
+function fingerprint(html: string): string {
+  return createHash("md5").update(html.replace(/\s+/g, " ").trim()).digest("hex");
+}
+
+/**
+ * Is this a real, live site?
+ *
+ * Two failure modes were reaching users as "results":
+ *
+ *  1. The model inventing a plausible domain that does not exist at all.
+ *  2. Parked or placeholder domains that answer 200 to every path — libra.ai
+ *     returned the same 114 bytes for /careers, /vacatures and for a nonsense
+ *     URL, so thirteen "HTTP 200" visits meant nothing.
+ *
+ * Both are checked before a company is allowed to occupy one of the user's
+ * match slots.
+ */
+async function verifyDomain(origin: string): Promise<{
+  ok: boolean;
+  reason?: string;
+  html?: string;
+  visit: PageVisit;
+  catchAll: boolean;
+}> {
+  const home = await fetchPage(origin);
+  if (!home.visit.ok) {
+    return {
+      ok: false,
+      reason: home.visit.error?.includes("fetch failed")
+        ? "That domain does not resolve — it is not a live website."
+        : `Homepage returned ${home.visit.status || home.visit.error}.`,
+      visit: home.visit,
+      catchAll: false,
+    };
+  }
+
+  // A near-empty homepage is a parking page, not a company site.
+  const text = readable(home.html);
+  if (text.length < 120) {
+    return {
+      ok: false,
+      reason: "The domain resolves but serves no real content — likely parked or for sale.",
+      visit: home.visit,
+      catchAll: false,
+    };
+  }
+
+  // Ask for a URL that cannot exist. If it answers with the same page, every
+  // later 200 from this host is meaningless.
+  const probe = await fetchPage(`${origin}/jh-probe-${Date.now()}-404`);
+  const catchAll = probe.visit.ok && fingerprint(probe.html) === fingerprint(home.html);
+
+  return { ok: true, html: home.html, visit: home.visit, catchAll };
 }
 
 async function fetchPage(url: string): Promise<{ html: string; visit: PageVisit }> {
@@ -181,6 +238,10 @@ function careersLinkFrom(html: string, origin: string): string | undefined {
 export interface EnrichResult extends HuntedCompany {
   evidence: EmailEvidence[];
   visited: PageVisit[];
+  /** False when the domain is dead or parked — the company is not usable. */
+  reachable: boolean;
+  /** Whether the user has something they can actually act on. */
+  actionable?: boolean;
 }
 
 export async function enrichCompany(company: HuntedCompany): Promise<EnrichResult> {
@@ -193,38 +254,63 @@ export async function enrichCompany(company: HuntedCompany): Promise<EnrichResul
       ...company,
       evidence,
       visited,
-      notes: ["No website domain was found for this company, so nothing could be verified."],
+      reachable: false,
+      notes: ["No website was found for this company, so nothing could be verified."],
     };
   }
 
   const origin = `https://${company.domain}`;
-  let careersUrl: string | undefined;
-  let ats: string | undefined;
 
-  // 1. Homepage — confirms the site is real and often links straight to careers.
-  const home = await fetchPage(origin);
-  visited.push(home.visit);
+  // Verify the site is real before spending any more requests on it.
+  const check = await verifyDomain(origin);
+  visited.push(check.visit);
 
-  if (home.visit.ok) {
-    ats ??= detectAts(home.html);
-    careersUrl = careersLinkFrom(home.html, origin);
-    evidence.push(...extractEmails(home.html, home.visit.url, home.visit.status));
-  } else {
-    notes.push(`Homepage unreachable (${home.visit.error ?? `HTTP ${home.visit.status}`}).`);
+  if (!check.ok) {
+    return {
+      ...company,
+      evidence,
+      visited,
+      reachable: false,
+      notes: [check.reason ?? "The website could not be reached."],
+    };
   }
 
-  // 2. The careers page it linked to, then the usual paths as a fallback.
-  const candidates = [careersUrl, ...CAREERS_PATHS.map(p => `${origin}${p}`)].filter(
-    (v): v is string => Boolean(v)
-  );
+  const home = check.html!;
+  let careersUrl: string | undefined = careersLinkFrom(home, origin);
+  let ats: string | undefined = detectAts(home);
+  evidence.push(...extractEmails(home, check.visit.url, check.visit.status));
+
+  if (check.catchAll) {
+    // Every path answers with the homepage, so guessing paths tells us nothing.
+    notes.push(
+      "This site answers every URL with the same page, so individual careers or contact pages could not be verified."
+    );
+  }
+
+  const candidates = check.catchAll
+    ? [careersUrl].filter((v): v is string => Boolean(v))
+    : [careersUrl, ...CAREERS_PATHS.map(p => `${origin}${p}`)].filter(
+        (v): v is string => Boolean(v)
+      );
+
+  const homePrint = fingerprint(home);
 
   for (const url of candidates.slice(0, 12)) {
     if (visited.some(v => v.url === url)) continue;
 
     const page = await fetchPage(url);
-    visited.push(page.visit);
-    if (!page.visit.ok) continue;
+    if (!page.visit.ok) {
+      visited.push(page.visit);
+      continue;
+    }
 
+    // A page identical to the homepage is a soft 404, not a careers page.
+    if (fingerprint(page.html) === homePrint) {
+      visited.push({ ...page.visit, ok: false, error: "same as homepage (soft 404)" });
+      continue;
+    }
+
+    visited.push(page.visit);
     ats ??= detectAts(page.html);
     careersUrl ??= page.visit.url;
     evidence.push(...extractEmails(page.html, page.visit.url, page.visit.status));
@@ -256,6 +342,13 @@ export async function enrichCompany(company: HuntedCompany): Promise<EnrichResul
     notes.push("No published role address found. We do not guess addresses.");
   }
 
+  // Actionable means the user has a real next step: an address to write to,
+  // an ATS to apply through, or a careers page that genuinely exists.
+  const actionable = Boolean(finalEvidence.length || ats || careersUrl);
+  if (!actionable) {
+    notes.push("No contact, careers page or application system could be found on this site.");
+  }
+
   return {
     ...company,
     careersUrl,
@@ -264,6 +357,8 @@ export async function enrichCompany(company: HuntedCompany): Promise<EnrichResul
     contactSource,
     evidence: finalEvidence,
     visited,
+    reachable: true,
+    actionable,
     notes,
   };
 }

@@ -58,8 +58,6 @@ export async function runHunt({
     });
     for (const usage of discovery.usages) await recordUsage(userId, "job-hunting", usage);
 
-    // Ask for extra, then research only as many as the user paid attention for.
-    const shortlist = discovery.companies.slice(0, config.matches);
 
     const outside = discovery.rejected.length
       ? `, ${discovery.rejected.length} outside your countries`
@@ -67,16 +65,47 @@ export async function runHunt({
     report(
       `${discovery.companies.length} companies in scope${outside} — verifying contacts`,
       35,
-      shortlist.length
+      0
     );
 
-    const enriched: EnrichResult[] = await enrichAll(shortlist, (done, total, name) => {
-      report(
-        `Checking ${name} (${done + 1} of ${total})`,
-        35 + Math.round(((done + 1) / Math.max(total, 1)) * 55),
-        total
-      );
-    });
+    /**
+     * Keep researching until the user actually has the number of usable results
+     * they asked for.
+     *
+     * Previously we researched exactly `matches` companies and returned
+     * whatever came back — which meant five dead domains counted as five
+     * results. Discovery finds far more candidates than requested, so a dead or
+     * parked domain is now replaced by the next candidate rather than wasting
+     * a slot.
+     */
+    const wanted = config.matches;
+    const enriched: EnrichResult[] = [];
+    const discarded: EnrichResult[] = [];
+    let cursor = 0;
+
+    // Bounded so a run of bad candidates cannot loop forever.
+    const budget = Math.min(discovery.companies.length, wanted * 4);
+
+    while (enriched.length < wanted && cursor < budget) {
+      const batch = discovery.companies.slice(cursor, cursor + Math.max(2, wanted - enriched.length));
+      cursor += batch.length;
+      if (!batch.length) break;
+
+      const results = await enrichAll(batch, (done, total, name) => {
+        const progress = 35 + Math.round((enriched.length / wanted) * 55);
+        report(`Checking ${name} — ${enriched.length} of ${wanted} usable so far`, progress, enriched.length);
+      });
+
+      for (const result of results) {
+        // A dead domain or one with no way to apply is not a result.
+        if (result.reachable && result.actionable) enriched.push(result);
+        else discarded.push(result);
+      }
+    }
+
+    // Only if we ran out of candidates do the unusable ones get shown, so the
+    // report is never silently short without saying why.
+    const finalCompanies = enriched.slice(0, wanted);
 
     const finishedAt = new Date();
     const inserted = await hunts().then(c =>
@@ -88,7 +117,9 @@ export async function runHunt({
         searchQueries: discovery.searchQueries,
         rejected: discovery.rejected,
         sources: discovery.sources,
-        companies: enriched,
+        companies: finalCompanies,
+        /** Dead or unusable candidates, kept so the count is explainable. */
+        discarded,
         totalDiscovered: discovery.companies.length,
         createdAt: finishedAt,
       })
@@ -102,7 +133,7 @@ export async function runHunt({
             status: "done",
             stage: "Hunt complete",
             progress: 100,
-            found: enriched.length,
+            found: finalCompanies.length,
             huntId: String(inserted.insertedId),
             startedAt: finishedAt,
             finishedAt,

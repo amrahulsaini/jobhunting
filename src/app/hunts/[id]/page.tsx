@@ -44,6 +44,7 @@ export default async function HuntReportPage({
   const companies = hunt.companies as EnrichResult[];
   const config = hunt.config as HuntConfig;
   const withEmail = companies.filter(c => c.emails.length);
+  const discarded = (hunt.discarded ?? []) as EnrichResult[];
 
   return (
     <AppShell username={user.username} usageDisplay={formatMoney(money.amount, money.currency)}>
@@ -139,6 +140,32 @@ export default async function HuntReportPage({
                   {r.name}
                 </span>
                 <span className="text-xs text-[var(--muted)]">{r.why}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Dead or unusable candidates, so a short report explains itself. */}
+      {!!discarded.length && (
+        <section className="card mt-5 p-6">
+          <h2 className="text-sm font-semibold uppercase tracking-wide">
+            Skipped — no usable website ({discarded.length})
+          </h2>
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            These came back from the search, but their sites are dead, parked, or offer no way
+            to apply. They were replaced with other candidates rather than filling a slot.
+          </p>
+          <ul className="mt-4 space-y-2 text-sm">
+            {discarded.map(d => (
+              <li key={d.name} className="flex flex-wrap items-baseline gap-x-2">
+                <span className="font-medium line-through decoration-[var(--line-strong)]">
+                  {d.name}
+                </span>
+                <span className="text-xs text-[var(--muted)]">
+                  {d.domain ? `${d.domain} — ` : ""}
+                  {d.notes?.[0] ?? "unusable"}
+                </span>
               </li>
             ))}
           </ul>
