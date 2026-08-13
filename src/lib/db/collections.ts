@@ -76,6 +76,23 @@ export interface UserDoc {
   hunterSummary?: HunterSummary;
   hunterJob?: HunterJob;
   huntJob?: HuntJob;
+  gmail?: GmailAccount;
+}
+
+/**
+ * A connected Gmail account.
+ *
+ * Tokens are stored encrypted — a refresh token is a long-lived key to the
+ * entire mailbox, so a database dump must not be enough to read someone's mail.
+ */
+export interface GmailAccount {
+  email?: string;
+  /** AES-256-GCM ciphertext, not the raw token. */
+  refreshToken?: string;
+  accessToken?: string;
+  expiresAt?: Date;
+  scopes: string[];
+  connectedAt: Date;
 }
 
 /** Progress of a hunt run. Same pattern as HunterJob — stored, not in memory. */

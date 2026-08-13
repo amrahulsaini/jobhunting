@@ -18,7 +18,7 @@ const NAV: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: "pipeline" },
   { href: "/profile", label: "Profile", icon: "resume-scan" },
   { href: "/hunts", label: "Hunts", icon: "globe-crawl" },
-  { href: "/outreach", label: "Outreach", icon: "send", soon: true },
+  { href: "/outreach", label: "Outreach", icon: "send" },
 ];
 
 /**
