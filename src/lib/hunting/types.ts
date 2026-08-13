@@ -10,7 +10,7 @@ export const ROLE_TYPES: { id: RoleType; label: string }[] = [
   { id: "freelance", label: "Freelance" },
 ];
 
-export const MATCH_COUNTS = [1, 5, 10, 25] as const;
+export const MATCH_COUNTS = [10, 20, 50, 100, 200] as const;
 
 export interface HuntConfig {
   scope: CountryScope;
