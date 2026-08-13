@@ -22,6 +22,8 @@ export const metadata: Metadata = {
   },
   description:
     "Let AI find the jobs that actually match your resume, then write the email for every one of them. Upload your resume once and approve what goes out.",
+  applicationName: "JobHunting",
+  appleWebApp: { capable: true, title: "JobHunting", statusBarStyle: "default" },
   icons: {
     icon: "/assets/brand/favicon.svg",
     apple: "/assets/icons-app/icon-180.png",
