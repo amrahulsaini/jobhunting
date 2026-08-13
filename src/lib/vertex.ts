@@ -1,4 +1,4 @@
-import { GoogleAuth } from "google-auth-library";
+import type { GoogleAuth } from "google-auth-library";
 
 /**
  * Vertex AI transport.
@@ -22,10 +22,18 @@ const HOST =
 
 let auth: GoogleAuth | undefined;
 
-function client(): GoogleAuth {
-  auth ??= new GoogleAuth({
-    scopes: ["https://www.googleapis.com/auth/cloud-platform"],
-  });
+/**
+ * Loaded on demand rather than imported at module scope.
+ *
+ * A static import pulls the whole Google auth stack into every build, including
+ * deployments that use the API-key transport and never touch Vertex — where it
+ * then fails to resolve at runtime because nothing traced it as a dependency.
+ */
+async function client(): Promise<GoogleAuth> {
+  if (!auth) {
+    const { GoogleAuth } = await import("google-auth-library");
+    auth = new GoogleAuth({ scopes: ["https://www.googleapis.com/auth/cloud-platform"] });
+  }
   return auth;
 }
 
@@ -48,7 +56,7 @@ export async function vertexHeaders(): Promise<Record<string, string>> {
     );
   }
 
-  const token = await client().getAccessToken();
+  const token = await (await client()).getAccessToken();
   if (!token) {
     throw new Error(
       "Could not obtain a Google access token. Run `gcloud auth application-default login`, " +
