@@ -15,9 +15,34 @@ interface MailMessage {
   unread: boolean;
   labels: string[];
   body?: string;
+  html?: string;
+  cc?: string;
+  replyTo?: string;
+  attachments?: { filename: string; mimeType: string; size: number; attachmentId: string }[];
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / 1048576).toFixed(1)} MB`;
+}
+
+/** "Aman Saini <a@x.com>" -> "a@x.com" */
+function addressOf(value: string): string {
+  return value.match(/<([^>]+)>/)?.[1] ?? value.trim();
+}
+
+/** Two-letter monogram for the sender avatar. */
+function initials(value: string): string {
+  const name = displayName(value).replace(/[^A-Za-z ]/g, "").trim();
+  const parts = name.split(/\s+/).filter(Boolean);
+  if (!parts.length) return "?";
+  return (parts[0][0] + (parts[1]?.[0] ?? "")).toUpperCase();
 }
 
 /** Gmail search shortcuts, so the useful views are one click away. */
+const PAGE_SIZE = 25;
+
 const FILTERS = [
   { id: "", label: "All mail" },
   { id: "is:unread", label: "Unread" },
@@ -40,19 +65,29 @@ export function Mailbox({ connectedAs }: { connectedAs?: string }) {
   const [error, setError] = useState<string | null>(null);
   const [needsReconnect, setNeedsReconnect] = useState(false);
   const [open, setOpen] = useState<MailMessage | null>(null);
+  /**
+   * Gmail only hands out a forward token, so going back means remembering the
+   * tokens already used. The stack holds the token that opened each page;
+   * index 0 is the first page, which has no token.
+   */
+  const [tokens, setTokens] = useState<(string | undefined)[]>([undefined]);
+  const [page, setPage] = useState(0);
+  const [nextToken, setNextToken] = useState<string | undefined>();
+  const [estimate, setEstimate] = useState(0);
   const [openLoading, setOpenLoading] = useState(false);
   const requestId = useRef(0);
 
-  const load = useCallback(async (query: string) => {
+  const load = useCallback(async (query: string, pageToken?: string) => {
     // Guards against an older, slower request overwriting a newer result.
     const id = ++requestId.current;
     setLoading(true);
     setError(null);
 
     try {
-      const res = await fetch(`/api/gmail/messages?q=${encodeURIComponent(query)}&limit=25`, {
-        cache: "no-store",
-      });
+      const params = new URLSearchParams({ q: query, limit: String(PAGE_SIZE) });
+      if (pageToken) params.set("pageToken", pageToken);
+
+      const res = await fetch(`/api/gmail/messages?${params}`, { cache: "no-store" });
       const json = await res.json();
       if (id !== requestId.current) return;
 
@@ -63,6 +98,8 @@ export function Mailbox({ connectedAs }: { connectedAs?: string }) {
         return;
       }
       setMessages(json.messages ?? []);
+      setNextToken(json.nextPageToken);
+      setEstimate(json.estimate ?? 0);
     } catch {
       if (id === requestId.current) setError("Could not reach the server.");
     } finally {
@@ -77,9 +114,32 @@ export function Mailbox({ connectedAs }: { connectedAs?: string }) {
    */
   useEffect(() => {
     const query = [filter, search.trim()].filter(Boolean).join(" ");
-    const timer = setTimeout(() => load(query), search ? 350 : 0);
+    const timer = setTimeout(() => load(query, tokens[page]), search ? 350 : 0);
     return () => clearTimeout(timer);
-  }, [filter, search, load]);
+  }, [filter, search, page, tokens, load]);
+
+  /** A new filter or search invalidates the token stack entirely. */
+  function resetPaging() {
+    setTokens([undefined]);
+    setPage(0);
+    setOpen(null);
+  }
+
+  const from = estimate ? page * PAGE_SIZE + 1 : 0;
+  const to = page * PAGE_SIZE + messages.length;
+
+  function goNext() {
+    if (!nextToken) return;
+    setTokens(prev => (prev[page + 1] ? prev : [...prev.slice(0, page + 1), nextToken]));
+    setPage(p => p + 1);
+    setOpen(null);
+  }
+
+  function goBack() {
+    if (page === 0) return;
+    setPage(p => p - 1);
+    setOpen(null);
+  }
 
   async function openMessage(message: MailMessage) {
     setOpen(message);
@@ -96,18 +156,44 @@ export function Mailbox({ connectedAs }: { connectedAs?: string }) {
   }
 
   return (
-    <div className="grid h-[calc(100vh-15rem)] min-h-[30rem] gap-5 lg:grid-cols-[1.1fr_1.4fr]">
+    <div className="grid h-[calc(100dvh-16rem)] min-h-[26rem] gap-5 lg:h-[calc(100dvh-13rem)] lg:grid-cols-[1.1fr_1.4fr]">
       {/* ------------------------------------------------------------ list */}
       <section className="card flex min-h-0 flex-col overflow-hidden">
         <div className="shrink-0 border-b border-[var(--line)] p-4">
           <div className="flex items-center gap-2">
             <input
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={e => { setSearch(e.target.value); resetPaging(); }}
               placeholder="Search mail…"
               className="w-full rounded-xl border border-[var(--line)] bg-[var(--background)] px-4 py-2.5 text-sm outline-none transition-colors focus:border-[var(--foreground)]"
             />
             {loading && <Spinner className="h-4 w-4 shrink-0" />}
+          </div>
+
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <p className="text-xs text-[var(--muted)] tabular-nums">
+              {messages.length ? `${from}–${to}${estimate > to ? ` of ${estimate}` : ""}` : "—"}
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={goBack}
+                disabled={page === 0 || loading}
+                aria-label="Newer"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--line)] text-sm transition-colors hover:bg-[var(--subtle)] disabled:opacity-30"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                onClick={goNext}
+                disabled={!nextToken || loading}
+                aria-label="Older"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--line)] text-sm transition-colors hover:bg-[var(--subtle)] disabled:opacity-30"
+              >
+                ›
+              </button>
+            </div>
           </div>
 
           <div className="mt-3 flex flex-wrap gap-2">
@@ -115,7 +201,7 @@ export function Mailbox({ connectedAs }: { connectedAs?: string }) {
               <button
                 key={f.label}
                 type="button"
-                onClick={() => setFilter(f.id)}
+                onClick={() => { setFilter(f.id); resetPaging(); }}
                 aria-pressed={filter === f.id}
                 className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
                   filter === f.id ? "is-selected" : "border-[var(--line)] hover:bg-[var(--subtle)]"
@@ -153,18 +239,30 @@ export function Mailbox({ connectedAs }: { connectedAs?: string }) {
                       open?.id === m.id ? "bg-[var(--subtle)]" : ""
                     }`}
                   >
-                    <div className="flex items-baseline justify-between gap-3">
-                      <span className={`truncate text-sm ${m.unread ? "font-semibold" : ""}`}>
-                        {displayName(m.from)}
+                    <div className="flex gap-3">
+                      <span
+                        className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold ${
+                          m.unread ? "border-[var(--foreground)]" : "border-[var(--line)] text-[var(--muted)]"
+                        }`}
+                      >
+                        {initials(m.from)}
                       </span>
-                      <span className="shrink-0 text-xs text-[var(--muted)]">
-                        {new Date(m.date).toLocaleDateString()}
+
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-baseline justify-between gap-3">
+                          <span className={`truncate text-sm ${m.unread ? "font-semibold" : ""}`}>
+                            {displayName(m.from)}
+                          </span>
+                          <span className="shrink-0 text-xs text-[var(--muted)]">
+                            {new Date(m.date).toLocaleDateString()}
+                          </span>
+                        </span>
+                        <span className={`mt-0.5 block truncate text-sm ${m.unread ? "font-medium" : ""}`}>
+                          {m.subject}
+                        </span>
+                        <span className="mt-1 block truncate text-xs text-[var(--muted)]">{m.snippet}</span>
                       </span>
                     </div>
-                    <p className={`mt-1 truncate text-sm ${m.unread ? "font-medium" : ""}`}>
-                      {m.subject}
-                    </p>
-                    <p className="mt-1 truncate text-xs text-[var(--muted)]">{m.snippet}</p>
                   </button>
                 </li>
               ))}
@@ -177,18 +275,69 @@ export function Mailbox({ connectedAs }: { connectedAs?: string }) {
       <section className="card min-h-0 overflow-y-auto overscroll-contain p-6">
         {open ? (
           <article>
-            <h2 className="text-lg font-semibold tracking-tight">{open.subject}</h2>
-            <div className="mt-2 space-y-0.5 text-sm text-[var(--muted)]">
-              <p className="break-all">From {open.from}</p>
-              {open.to && <p className="break-all">To {open.to}</p>}
-              <p>{new Date(open.date).toLocaleString()}</p>
+            <h2 className="text-xl font-semibold tracking-tight">{open.subject}</h2>
+
+            {/* Sender block, laid out like a mail client rather than a list of
+                raw headers. */}
+            <div className="mt-4 flex items-start gap-3 border-b border-[var(--line)] pb-5">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--line)] text-xs font-semibold">
+                {initials(open.from)}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <p className="font-medium">{displayName(open.from)}</p>
+                  <p className="text-xs text-[var(--muted)]">
+                    {new Date(open.date).toLocaleString()}
+                  </p>
+                </div>
+                <p className="truncate text-sm text-[var(--muted)]">{addressOf(open.from)}</p>
+                {open.to && (
+                  <p className="mt-1 truncate text-xs text-[var(--muted)]">to {open.to}</p>
+                )}
+                {open.cc && (
+                  <p className="truncate text-xs text-[var(--muted)]">cc {open.cc}</p>
+                )}
+              </div>
             </div>
+
+            {!!open.attachments?.length && (
+              <div className="mt-5">
+                <p className="text-xs uppercase tracking-wide text-[var(--muted)]">
+                  {open.attachments.length} attachment{open.attachments.length === 1 ? "" : "s"}
+                </p>
+                <ul className="mt-2 flex flex-wrap gap-2">
+                  {open.attachments.map(a => (
+                    <li key={a.attachmentId}>
+                      <a
+                        href={`/api/gmail/attachment?message=${open.id}&id=${a.attachmentId}&name=${encodeURIComponent(a.filename)}`}
+                        className="flex items-center gap-2.5 rounded-xl border border-[var(--line)] px-3 py-2.5 text-sm transition-colors hover:bg-[var(--subtle)]"
+                      >
+                        <Icon name="resume-scan" className="h-4 w-4 shrink-0" />
+                        <span className="min-w-0">
+                          <span className="block max-w-[14rem] truncate">{a.filename}</span>
+                          <span className="block text-xs text-[var(--muted)]">
+                            {formatBytes(a.size)}
+                          </span>
+                        </span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             <div className="mt-5 border-t border-[var(--line)] pt-5">
               {openLoading ? (
                 <p className="flex items-center gap-2 text-sm text-[var(--muted)]">
                   <Spinner className="h-4 w-4" /> Loading message…
                 </p>
+              ) : open.html ? (
+                // Sanitised server-side: scripts, styles, iframes, inline event
+                // handlers and remote tracking images are stripped before this.
+                <div
+                  className="mail-body text-sm leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: open.html }}
+                />
               ) : (
                 <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
                   {open.body || open.snippet}

@@ -11,6 +11,15 @@ import { accessTokenFor } from "./oauth";
 
 const BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
 
+export interface MailAttachment {
+  filename: string;
+  mimeType: string;
+  /** Bytes, as Gmail reports them. */
+  size: number;
+  /** Needed to fetch the bytes; only valid for this message. */
+  attachmentId: string;
+}
+
 export interface MailMessage {
   id: string;
   threadId: string;
@@ -41,18 +50,22 @@ async function api<T>(token: string, path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+interface RawPart {
+  partId?: string;
+  mimeType?: string;
+  filename?: string;
+  headers?: { name: string; value: string }[];
+  body?: { data?: string; size?: number; attachmentId?: string };
+  parts?: RawPart[];
+}
+
 interface RawMessage {
   id: string;
   threadId: string;
   snippet: string;
   labelIds?: string[];
   internalDate?: string;
-  payload?: {
-    headers?: { name: string; value: string }[];
-    mimeType?: string;
-    body?: { data?: string };
-    parts?: RawMessage["payload"][];
-  };
+  payload?: RawPart;
 }
 
 const header = (msg: RawMessage, name: string): string =>
@@ -64,32 +77,61 @@ function decodeBody(data?: string): string {
   return Buffer.from(data, "base64url").toString("utf8");
 }
 
-/** Walks the MIME tree for the best plain-text body available. */
-function extractBody(payload: RawMessage["payload"]): string {
-  if (!payload) return "";
+/** Walks the MIME tree collecting the text body, the HTML body and attachments. */
+function walk(part: RawPart | undefined, out: {
+  text: string;
+  html: string;
+  attachments: MailAttachment[];
+}): void {
+  if (!part) return;
 
-  if (payload.mimeType === "text/plain" && payload.body?.data) {
-    return decodeBody(payload.body.data);
+  // A part with a filename and an attachmentId is a real attachment. Inline
+  // images also carry filenames, but they still belong in the list — a user
+  // looking for "the file they sent" should find it either way.
+  if (part.filename && part.body?.attachmentId) {
+    out.attachments.push({
+      filename: part.filename,
+      mimeType: part.mimeType ?? "application/octet-stream",
+      size: part.body.size ?? 0,
+      attachmentId: part.body.attachmentId,
+    });
   }
 
-  for (const part of payload.parts ?? []) {
-    const found = extractBody(part);
-    if (found) return found;
+  if (part.mimeType === "text/plain" && part.body?.data && !part.filename) {
+    out.text ||= decodeBody(part.body.data);
+  }
+  if (part.mimeType === "text/html" && part.body?.data && !part.filename) {
+    out.html ||= decodeBody(part.body.data);
   }
 
-  // Fall back to HTML with the tags stripped rather than showing nothing.
-  if (payload.mimeType === "text/html" && payload.body?.data) {
-    return decodeBody(payload.body.data)
-      .replace(/<style[\s\S]*?<\/style>/gi, " ")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-  }
+  for (const child of part.parts ?? []) walk(child, out);
+}
 
-  return "";
+/**
+ * Strips HTML mail down to something safe to render.
+ *
+ * Mail is untrusted input, so scripts, styles, iframes, event handlers and
+ * remote images are removed rather than sanitised in place. Remote images are
+ * dropped specifically because they act as read-receipt trackers.
+ */
+function sanitiseHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<(iframe|object|embed|form|link|meta|base)\b[\s\S]*?>/gi, "")
+    .replace(/<\/(iframe|object|embed|form)>/gi, "")
+    // Inline event handlers and javascript: URLs.
+    .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/javascript:/gi, "")
+    // Remote images are tracking pixels as often as they are content.
+    .replace(/<img\b[^>]*>/gi, "")
+    .trim();
 }
 
 function toMessage(raw: RawMessage, includeBody = false): MailMessage {
+  const parsed = { text: "", html: "", attachments: [] as MailAttachment[] };
+  if (includeBody) walk(raw.payload, parsed);
+
   return {
     id: raw.id,
     threadId: raw.threadId,
@@ -102,8 +144,30 @@ function toMessage(raw: RawMessage, includeBody = false): MailMessage {
       : header(raw, "Date"),
     unread: (raw.labelIds ?? []).includes("UNREAD"),
     labels: raw.labelIds ?? [],
-    ...(includeBody ? { body: extractBody(raw.payload) } : {}),
+    ...(includeBody
+      ? {
+          body: parsed.text,
+          html: parsed.html ? sanitiseHtml(parsed.html) : undefined,
+          attachments: parsed.attachments,
+          cc: header(raw, "Cc"),
+          replyTo: header(raw, "Reply-To"),
+        }
+      : {}),
   };
+}
+
+/** Streams one attachment's bytes. Gmail returns them base64url encoded. */
+export async function getAttachment(
+  userId: ObjectId,
+  messageId: string,
+  attachmentId: string
+): Promise<Buffer> {
+  const token = await accessTokenFor(userId);
+  const data = await api<{ data?: string }>(
+    token,
+    `/messages/${messageId}/attachments/${attachmentId}`
+  );
+  return Buffer.from(data.data ?? "", "base64url");
 }
 
 export interface MailPage {

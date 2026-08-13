@@ -223,6 +223,44 @@ body {
   border-color: var(--foreground);
 }
 
+/* Rendered HTML mail.
+   Senders ship arbitrary markup with their own colours and fixed-width tables,
+   so this constrains it to our type and stops a wide table from blowing out
+   the reader pane. */
+.mail-body {
+  overflow-wrap: anywhere;
+}
+.mail-body table {
+  width: 100% !important;
+  max-width: 100% !important;
+  display: block;
+  overflow-x: auto;
+}
+.mail-body img,
+.mail-body video {
+  max-width: 100%;
+  height: auto;
+}
+.mail-body a {
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+.mail-body p,
+.mail-body div,
+.mail-body td,
+.mail-body span {
+  /* Sender colours are frequently unreadable against our background. */
+  color: inherit !important;
+  background: transparent !important;
+  max-width: 100% !important;
+}
+.mail-body blockquote {
+  border-left: 2px solid var(--line-strong);
+  padding-left: 1rem;
+  margin: 0.75rem 0;
+  color: var(--muted) !important;
+}
+
 /* Underline that draws in from the left on hover. */
 .link-underline {
   position: relative;
