@@ -7,6 +7,8 @@ import { DisconnectGmail } from "@/components/disconnect-gmail";
 import { OutreachTabs } from "@/components/outreach-tabs";
 import { OutreachDrafts, type OutreachDraftView } from "@/components/outreach-drafts";
 import { EmailSettingsPanel } from "@/components/email-settings";
+import { GenerateDrafts, type Candidate } from "@/components/generate-drafts";
+import type { EnrichResult } from "@/lib/hunting/enrich";
 import { currentUser } from "@/lib/auth/session";
 import { gmailConfigured } from "@/lib/gmail/oauth";
 import { hunts } from "@/lib/db/collections";
@@ -33,8 +35,10 @@ export default async function OutreachPage({
   const configured = gmailConfigured();
 
   // Drafts live on the hunts that produced them; gather them into one list.
+  // Every hunt, not only those with drafts — the Generate tab needs the
+  // companies that have not been written to yet.
   const all = await hunts().then(c =>
-    c.find({ userId: user._id, drafts: { $exists: true } }).sort({ createdAt: -1 }).toArray()
+    c.find({ userId: user._id }).sort({ createdAt: -1 }).toArray()
   );
 
   const drafts: OutreachDraftView[] = all.flatMap(hunt =>
@@ -55,6 +59,52 @@ export default async function OutreachPage({
 
   // Unsent first — those are the ones needing attention.
   drafts.sort((a, b) => Number(Boolean(a.sentAt)) - Number(Boolean(b.sentAt)));
+
+  // Flatten every researched company into one selectable list.
+  const candidates: Candidate[] = all.flatMap(hunt => {
+    const existing = (hunt.drafts ?? []) as CompanyDraft[];
+    return (hunt.companies as EnrichResult[]).map(c => {
+      const key = c.domain || c.name;
+      const draft = existing.find(d => d.key === key);
+
+      return {
+        huntId: String(hunt._id),
+        key,
+        company: c.name,
+        roleTitle: c.roleTitle,
+        roleType: c.roleType,
+        location: c.location,
+        website: c.website,
+        domain: c.domain,
+        email: c.emails?.[0],
+        ats: c.ats,
+        careersUrl: c.careersUrl,
+        drafted: Boolean(draft),
+        sent: Boolean(draft?.sentAt),
+        huntRole: hunt.role,
+        huntDate: new Date(hunt.createdAt).toISOString(),
+      };
+    });
+  });
+
+  // The same company can surface in more than one hunt; keep the first.
+  const seen = new Set<string>();
+  const uniqueCandidates = candidates.filter(c => {
+    const id = c.domain || c.company;
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+
+  const draftJob = user.draftJob
+    ? {
+        status: user.draftJob.status,
+        stage: user.draftJob.stage,
+        progress: user.draftJob.progress,
+        drafted: user.draftJob.drafted,
+        error: user.draftJob.error,
+      }
+    : null;
 
   const settings = { ...DEFAULT_SETTINGS, ...(user.emailSettings ?? {}) };
 
@@ -92,6 +142,7 @@ export default async function OutreachPage({
       <div className="mt-6 flex min-h-0 flex-1 flex-col">
         <OutreachTabs
           draftCount={drafts.filter(d => !d.sentAt).length}
+          generate={<GenerateDrafts candidates={uniqueCandidates} job={draftJob} />}
           drafts={
             <OutreachDrafts
               drafts={drafts}
