@@ -5,7 +5,7 @@ import { hunts, users } from "@/lib/db/collections";
 import { draftForCompanies } from "@/lib/outreach/draft-company";
 import { recordUsage } from "@/lib/billing/usage";
 import type { EnrichResult } from "@/lib/hunting/enrich";
-import type { UserProfile, HunterSummary } from "@/lib/db/collections";
+import type { UserProfile, HunterSummary, EmailSettings } from "@/lib/db/collections";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -23,12 +23,14 @@ async function runDrafting({
   companies,
   profile,
   briefing,
+  settings,
 }: {
   userId: ObjectId;
   huntId: ObjectId;
   companies: EnrichResult[];
   profile: UserProfile;
   briefing?: HunterSummary;
+  settings?: EmailSettings;
 }) {
   const col = await users();
 
@@ -54,7 +56,8 @@ async function runDrafting({
           `Writing to ${name} (${done + 1} of ${total})`,
           5 + Math.round((done / Math.max(total, 1)) * 90),
           done
-        )
+        ),
+      settings
     );
 
     for (const usage of usages) await recordUsage(userId, "outreach-draft", usage);
@@ -166,6 +169,7 @@ export async function POST(request: Request) {
     companies: selected,
     profile: user.profile,
     briefing: user.hunterSummary,
+    settings: user.emailSettings,
   });
 
   return NextResponse.json({ ok: true, started: true, count: selected.length });

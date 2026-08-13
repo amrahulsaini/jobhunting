@@ -11,7 +11,6 @@ import { formatMoney, toLocal } from "@/lib/billing/currency";
 import type { EnrichResult } from "@/lib/hunting/enrich";
 import type { HuntConfig } from "@/lib/hunting/types";
 import { DraftSelector, type SelectableCompany } from "@/components/draft-selector";
-import { DraftList, type DraftView } from "@/components/draft-list";
 import type { CompanyDraft } from "@/lib/outreach/draft-company";
 
 export const metadata: Metadata = { title: "Hunt report" };
@@ -58,18 +57,6 @@ export default async function HuntReportPage({
     email: c.emails?.[0],
     ats: c.ats,
     hasCareers: Boolean(c.careersUrl),
-  }));
-
-  const draftViews: DraftView[] = drafts.map(d => ({
-    key: d.key,
-    company: d.company,
-    roleTitle: d.roleTitle,
-    to: d.to,
-    applyUrl: d.applyUrl,
-    subject: d.subject,
-    body: d.body,
-    rationale: d.rationale,
-    warnings: d.warnings ?? [],
   }));
 
   const draftJob = user.draftJob && user.draftJob.huntId === id ? user.draftJob : null;
@@ -132,18 +119,14 @@ export default async function HuntReportPage({
         </div>
       )}
 
-      {!!draftViews.length && (
-        <section className="mt-5">
-          <h2 className="text-sm font-semibold uppercase tracking-wide">
-            Your drafts ({draftViews.length})
-          </h2>
-          <p className="mt-1 text-xs text-[var(--muted)]">
-            Nothing has been sent. Review each one, then open it in your mail app.
-          </p>
-          <div className="mt-4">
-            <DraftList drafts={draftViews} />
-          </div>
-        </section>
+      {!!drafts.length && (
+        <p className="mt-4 text-sm text-[var(--muted)]">
+          {drafts.length} draft{drafts.length === 1 ? " is" : "s are"} ready —{" "}
+          <Link href="/outreach" className="link-underline text-[var(--foreground)]">
+            review and send them in Outreach
+          </Link>
+          .
+        </p>
       )}
 
       {/* ------------------------------------------------- what we searched */}

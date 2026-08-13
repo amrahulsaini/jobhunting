@@ -78,6 +78,30 @@ export interface UserDoc {
   huntJob?: HuntJob;
   gmail?: GmailAccount;
   draftJob?: DraftJob;
+  emailSettings?: EmailSettings;
+}
+
+/**
+ * How the user wants their outreach written.
+ *
+ * Kept on the user rather than per hunt, so the voice stays consistent across
+ * every company they write to.
+ */
+export interface EmailSettings {
+  tone: "cold-intro" | "warm-direct" | "formal" | "concise";
+  length: "short" | "standard" | "detailed";
+  /** Ask for a call or meeting explicitly. */
+  callToAction: "chat" | "meet" | "either" | "none";
+  includeProjects: boolean;
+  includePortfolio: boolean;
+  includeGithub: boolean;
+  /** Attach the stored resume when sending. */
+  attachResume: boolean;
+  /** Free-text instructions from the user, applied to every draft. */
+  customInstructions?: string;
+  /** Appended verbatim; never rewritten by the model. */
+  signature?: string;
+  updatedAt?: Date;
 }
 
 /**
