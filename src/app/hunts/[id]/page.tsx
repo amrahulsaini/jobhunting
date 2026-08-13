@@ -10,6 +10,9 @@ import { usageSummary } from "@/lib/billing/usage";
 import { formatMoney, toLocal } from "@/lib/billing/currency";
 import type { EnrichResult } from "@/lib/hunting/enrich";
 import type { HuntConfig } from "@/lib/hunting/types";
+import { DraftSelector, type SelectableCompany } from "@/components/draft-selector";
+import { DraftList, type DraftView } from "@/components/draft-list";
+import type { CompanyDraft } from "@/lib/outreach/draft-company";
 
 export const metadata: Metadata = { title: "Hunt report" };
 export const dynamic = "force-dynamic";
@@ -45,6 +48,31 @@ export default async function HuntReportPage({
   const config = hunt.config as HuntConfig;
   const withEmail = companies.filter(c => c.emails.length);
   const discarded = (hunt.discarded ?? []) as EnrichResult[];
+  const drafts = (hunt.drafts ?? []) as CompanyDraft[];
+
+  // Only companies we could actually research are worth writing to.
+  const selectable: SelectableCompany[] = companies.map(c => ({
+    key: c.domain || c.name,
+    name: c.name,
+    roleTitle: c.roleTitle,
+    email: c.emails?.[0],
+    ats: c.ats,
+    hasCareers: Boolean(c.careersUrl),
+  }));
+
+  const draftViews: DraftView[] = drafts.map(d => ({
+    key: d.key,
+    company: d.company,
+    roleTitle: d.roleTitle,
+    to: d.to,
+    applyUrl: d.applyUrl,
+    subject: d.subject,
+    body: d.body,
+    rationale: d.rationale,
+    warnings: d.warnings ?? [],
+  }));
+
+  const draftJob = user.draftJob && user.draftJob.huntId === id ? user.draftJob : null;
 
   return (
     <AppShell username={user.username} usageDisplay={formatMoney(money.amount, money.currency)}>
@@ -81,6 +109,42 @@ export default async function HuntReportPage({
           </section>
         ))}
       </div>
+
+      {/* ------------------------------------------------------- drafting */}
+      {!!companies.length && (
+        <div className="mt-5">
+          <DraftSelector
+            huntId={id}
+            companies={selectable}
+            alreadyDrafted={drafts.length}
+            job={
+              draftJob
+                ? {
+                    status: draftJob.status,
+                    stage: draftJob.stage,
+                    progress: draftJob.progress,
+                    drafted: draftJob.drafted,
+                    error: draftJob.error,
+                  }
+                : null
+            }
+          />
+        </div>
+      )}
+
+      {!!draftViews.length && (
+        <section className="mt-5">
+          <h2 className="text-sm font-semibold uppercase tracking-wide">
+            Your drafts ({draftViews.length})
+          </h2>
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            Nothing has been sent. Review each one, then open it in your mail app.
+          </p>
+          <div className="mt-4">
+            <DraftList drafts={draftViews} />
+          </div>
+        </section>
+      )}
 
       {/* ------------------------------------------------- what we searched */}
       {!!hunt.searchQueries?.length && (

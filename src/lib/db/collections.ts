@@ -77,6 +77,7 @@ export interface UserDoc {
   hunterJob?: HunterJob;
   huntJob?: HuntJob;
   gmail?: GmailAccount;
+  draftJob?: DraftJob;
 }
 
 /**
@@ -93,6 +94,18 @@ export interface GmailAccount {
   expiresAt?: Date;
   scopes: string[];
   connectedAt: Date;
+}
+
+/** Progress of a drafting run. Same stored-not-in-memory pattern as the others. */
+export interface DraftJob {
+  status: "running" | "done" | "failed";
+  stage: string;
+  progress: number;
+  drafted: number;
+  huntId?: string;
+  startedAt: Date;
+  finishedAt?: Date;
+  error?: string;
 }
 
 /** Progress of a hunt run. Same pattern as HunterJob — stored, not in memory. */
@@ -185,6 +198,8 @@ export interface HuntDoc {
   /** Candidates dropped as dead, parked or unusable — kept so counts explain themselves. */
   discarded?: unknown[];
   totalDiscovered: number;
+  /** Emails drafted for companies in this hunt, kept beside their evidence. */
+  drafts?: unknown[];
   createdAt: Date;
 }
 

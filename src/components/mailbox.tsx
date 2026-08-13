@@ -96,10 +96,10 @@ export function Mailbox({ connectedAs }: { connectedAs?: string }) {
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[1.1fr_1.4fr]">
+    <div className="grid h-[calc(100vh-15rem)] min-h-[30rem] gap-5 lg:grid-cols-[1.1fr_1.4fr]">
       {/* ------------------------------------------------------------ list */}
-      <section className="card flex min-h-[28rem] flex-col overflow-hidden">
-        <div className="border-b border-[var(--line)] p-4">
+      <section className="card flex min-h-0 flex-col overflow-hidden">
+        <div className="shrink-0 border-b border-[var(--line)] p-4">
           <div className="flex items-center gap-2">
             <input
               value={search}
@@ -127,7 +127,7 @@ export function Mailbox({ connectedAs }: { connectedAs?: string }) {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {error ? (
             <div className="p-6">
               <p className="text-sm">{error}</p>
@@ -174,7 +174,7 @@ export function Mailbox({ connectedAs }: { connectedAs?: string }) {
       </section>
 
       {/* --------------------------------------------------------- reader */}
-      <section className="card min-h-[28rem] p-6">
+      <section className="card min-h-0 overflow-y-auto overscroll-contain p-6">
         {open ? (
           <article>
             <h2 className="text-lg font-semibold tracking-tight">{open.subject}</h2>
